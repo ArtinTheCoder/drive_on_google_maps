@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://cwc7eh3c0jy7w"]
 
 [ext_resource type="Script" uid="uid://byssmdwar0g5q" path="res://scripts/maps/map_manager.gd" id="1_8bo5w"]
+[ext_resource type="Script" uid="uid://cc322ee4j572d" path="res://scripts/maps/world_to_cords.gd" id="2_yjpxe"]
+[ext_resource type="Script" uid="uid://gnrvj5x57l16" path="res://scripts/maps/cord_to_tile_num.gd" id="3_xi22p"]
 
 [node name="MapManager" type="Control" unique_id=2125945802]
 layout_mode = 3
@@ -18,3 +20,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="WorldToCords" type="Node" parent="." unique_id=1172802772]
+script = ExtResource("2_yjpxe")
+zoom = 20
+
+[node name="CordToTileNum" type="Node" parent="." unique_id=1725491057]
+script = ExtResource("3_xi22p")

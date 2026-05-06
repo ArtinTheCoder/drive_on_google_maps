@@ -6,8 +6,9 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_dovo2"]
 size = Vector2(128, 128)
 
-[node name="Node2D" type="CharacterBody2D" unique_id=669963404]
+[node name="Node2D" type="CharacterBody2D" unique_id=669963404 groups=["player"]]
 position = Vector2(576, 324)
+scale = Vector2(0.5, 0.5)
 script = ExtResource("1_8afob")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=803946440]
@@ -15,3 +16,5 @@ shape = SubResource("RectangleShape2D_dovo2")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=893018952]
 texture = ExtResource("2_dovo2")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=713433756]

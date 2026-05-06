@@ -17,4 +17,4 @@ func load_env(path: String):
 		var line = file.get_line().strip_edges()
 		if line.contains("="):
 			var parts = line.split("=")
-			env[parts[0]] = parts[1]
+			env[parts[0]] = parts[1].replace("\"", "")

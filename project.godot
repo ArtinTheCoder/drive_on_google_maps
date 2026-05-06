@@ -18,7 +18,16 @@ config/icon="res://icon.svg"
 [autoload]
 
 EnvLoader="*uid://cv0dh8dyo6e27"
+Global="*uid://b6j7m2q1oeq75"
 GMap="*uid://dxk6xio1jujfl"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/VSJump/plugin.cfg")
+
+[global_group]
+
+player=""
 
 [input]
 
