@@ -10,8 +10,10 @@ var lat = 45.4215
 var lng = -75.6972
 
 const TILE_SIZE = 256
-const CHUNK_RADIUS = 2 # 5x5 grid around player
+const LOAD_TRIGGER_RADIUS = 1
+const UNLOAD_RADIUS = 5 
 
+var chunk_radius = 3 # 7x7 grid around player
 var loaded_chunks = {}
 var current_center_tile = Vector2i(-9999, 9999)
 
@@ -20,6 +22,18 @@ var anchor_tile: Vector2i
 func _ready() -> void:
 	anchor_tile = cord_to_tile_num.deg2num(lat, lng, zoom)
 	
+	chunk_radius = 5 # make it big at the start so then the player wounldn't see any empty spots
+	
+	await get_tree().create_timer(0.15).timeout # wait for player to be ready
+	
+	if Global.player:
+		var lat_lng = world_to_cords.world_to_latlng(Global.player.position)
+		var tile = cord_to_tile_num.deg2num(lat_lng.x, lat_lng.y, zoom)
+		current_center_tile = tile
+		update_chunks(tile)
+		
+	chunk_radius = 2
+	
 func _process(_delta: float) -> void:
 	if not Global.player:
 		return
@@ -27,20 +41,24 @@ func _process(_delta: float) -> void:
 	var lat_lng = world_to_cords.world_to_latlng(Global.player.position)
 	var tile = cord_to_tile_num.deg2num(lat_lng.x, lat_lng.y, zoom)
 	
-	if tile != current_center_tile:
+	var diff = (tile - current_center_tile).abs()
+	if diff.x >= LOAD_TRIGGER_RADIUS or diff.y >= LOAD_TRIGGER_RADIUS:
 		current_center_tile = tile
 		update_chunks(tile)
 
 func update_chunks(center: Vector2i) -> void:
-	for x in range(-CHUNK_RADIUS, CHUNK_RADIUS + 1):
-		for y in range(-CHUNK_RADIUS, CHUNK_RADIUS + 1):
+	for x in range(-chunk_radius, chunk_radius + 1):
+		for y in range(-chunk_radius, chunk_radius + 1):
 			var tile_coord = center + Vector2i(x, y)
 			
 			if not loaded_chunks.has(tile_coord):
 				load_chunk(tile_coord)
 
 	for coord in loaded_chunks.keys():
-		if abs(coord.x - center.x) > CHUNK_RADIUS + 1 or abs(coord.y - center.y) > CHUNK_RADIUS + 1:
+		if loaded_chunks[coord] == null:
+			continue
+			
+		if abs(coord.x - center.x) > UNLOAD_RADIUS or abs(coord.y - center.y) > UNLOAD_RADIUS:
 			loaded_chunks[coord].queue_free()
 			loaded_chunks.erase(coord)
 			
