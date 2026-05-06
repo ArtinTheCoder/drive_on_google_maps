@@ -1,10 +1,10 @@
 extends Control
 
-@export var zoom = 20
-
+@export var zoom = 10
 
 @onready var world_to_cords: Node = $WorldToCords
 @onready var cord_to_tile_num: Node = $CordToTileNum
+@onready var tile_cache: Node = $TileCache
 
 var lat = 45.4215
 var lng = -75.6972
@@ -15,6 +15,11 @@ const CHUNK_RADIUS = 2 # 5x5 grid around player
 var loaded_chunks = {}
 var current_center_tile = Vector2i(-9999, 9999)
 
+var anchor_tile: Vector2i  
+
+func _ready() -> void:
+	anchor_tile = cord_to_tile_num.deg2num(lat, lng, zoom)
+	
 func _process(_delta: float) -> void:
 	if not Global.player:
 		return
@@ -38,24 +43,26 @@ func update_chunks(center: Vector2i) -> void:
 		if abs(coord.x - center.x) > CHUNK_RADIUS + 1 or abs(coord.y - center.y) > CHUNK_RADIUS + 1:
 			loaded_chunks[coord].queue_free()
 			loaded_chunks.erase(coord)
-
+			
 func load_chunk(tile_coord: Vector2i) -> void:
-	var url = "https://maps.googleapis.com/maps/api/staticmap?center=%s&zoom=%d&size=256x256&maptype=satellite&key=%s" % [
-		tile_coord_to_latlng_string(tile_coord),
-		zoom,
-		GMap.api_key
-	]
+	loaded_chunks[tile_coord] = null
+
+	# serve from cache if have
+	if tile_cache.has_tile(tile_coord, zoom):
+		var tex = tile_cache.load_tile(tile_coord, zoom)
+		_spawn_chunk_sprite(tex, tile_coord)
+		return
+
+	# otherwise get from api
+	var url = "https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/%d/%d/%d?access_token=%s" % [zoom, tile_coord.x, tile_coord.y, GMap.api_key]
 
 	var http = HTTPRequest.new()
-	
 	add_child(http)
 	http.request_completed.connect(func(result, code, headers, body):
 		_on_chunk_loaded(result, code, body, tile_coord, http)
 	)
-	
 	http.request(url)
-	loaded_chunks[tile_coord] = null  
-	
+
 func _on_chunk_loaded(result, code, body, tile_coord: Vector2i, http: HTTPRequest) -> void:
 	http.queue_free()
 	
@@ -63,26 +70,31 @@ func _on_chunk_loaded(result, code, body, tile_coord: Vector2i, http: HTTPReques
 		print("chunk failed, code: ", code)
 		loaded_chunks.erase(tile_coord)
 		return
-
-	var anchor_tile = cord_to_tile_num.deg2num(lat, lng, zoom)  
-
+	
+#	test the image before saving
 	var img = Image.new()
-	img.load_png_from_buffer(body)
-	
+	var err = img.load_jpg_from_buffer(body)
+	if err != OK:
+		print("bad image data for tile: ", tile_coord)
+		loaded_chunks.erase(tile_coord)
+		return
+		
+	# save to cache before spawning
+	tile_cache.save_tile(tile_coord, zoom, body)
 	var tex = ImageTexture.create_from_image(img)
+	_spawn_chunk_sprite(tex, tile_coord)
+
+func _spawn_chunk_sprite(tex: ImageTexture, tile_coord: Vector2i) -> void:
 	var sprite = Sprite2D.new()
-	
 	sprite.texture = tex
 	sprite.centered = false
-
 	sprite.position = Vector2(
 		(tile_coord.x - anchor_tile.x) * TILE_SIZE,
 		(tile_coord.y - anchor_tile.y) * TILE_SIZE
 	)
-	
 	add_child(sprite)
 	loaded_chunks[tile_coord] = sprite
-
+	
 func tile_coord_to_latlng_string(tile_coord: Vector2i) -> String:
 	var n = pow(2, zoom)
 	var out_lng = tile_coord.x / n * 360.0 - 180.0
